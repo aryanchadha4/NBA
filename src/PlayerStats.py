@@ -44,7 +44,7 @@ def check_all_cells_have_text(table):
     return True
 
 
-def wait_for_populated_rows(driver, table, timeout=5):
+def wait_for_populated_rows(driver, table, timeout=1000):
     try:
         WebDriverWait(driver, timeout).until(
             lambda d: check_all_cells_have_text(table) 
@@ -55,30 +55,8 @@ def wait_for_populated_rows(driver, table, timeout=5):
     except TimeoutException:
         print("rows are not fully populated.")
 
-def close_ad(driver):
-    try:
-        close_button = WebDriverWait(driver, 2).until(
-            EC.presence_of_element_located((By.XPATH, "//button[contains(@id, 'bx-close-outside')]"))
-        )
-        if close_button.is_displayed():
-            driver.execute_script("arguements[0].click()", close_button)
-            print("Ad closed")
-    except TimeoutException:
-        print("No ad found")
-    except Exception as e:
-        print(f"Ad failed to close: {e}")
-
 def stat_scraper(url, driver, season):
    driver.get(url)
-
-   try:
-       cookie = WebDriverWait(driver, 5).until(
-           EC.presence_of_element_located((By.CLASS_NAME, "ot-sdk-row"))
-       )
-       driver.execute_script("arguments[0].click();", cookie)
-       print("Cookie banner dismissed.")
-   except Exception:
-       print("No cookie banner")
 
    select_all_from_dropdown(driver)
 
@@ -104,15 +82,8 @@ def stat_scraper(url, driver, season):
    rows = driver.find_elements(By.XPATH, ".//tbody/tr")
    for row in rows:
         cells = row.find_elements(By.XPATH, ".//td")
-        if not cells or not all(cell.text.strip() for cell in cells):
-            print("Running close ad...")
-            success = close_ad(driver)
-            if success:
-                cells = row.find_elements(By.XPATH, ".//td")
-        if cells and all(cell.text.strip() for cell in cells):
-            all_data.append([cell.text for cell in cells])
-        else:
-            print("Close ad didn't work.")
+        all_data.append([cell.text for cell in cells])
+
 
    print(f"Total rows: {len(all_data)}")
 
