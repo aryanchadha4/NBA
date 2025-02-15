@@ -94,17 +94,27 @@ def stat_scraper(url, driver, season):
 
 
 def find_chromedriver_path():
-    # Check environment variable
-    if os.environ["CHROMEDRIVER_PATH"]:
-        return os.environ["CHROMEDRIVER_PATH"]
+    # Check environment variable first
+    chromedriver_env = os.environ.get("CHROMEDRIVER_PATH")
+    if chromedriver_env:
+        return chromedriver_env
     
-    # Check yaml
-    config_yml = yaml.safe_load("config.yml")
-    if config_yml["chrome_path"]:
-        return config_yml["chrome_path"]
+    # Load config.yml properly
+    try:
+        with open("config.yml", "r") as file:
+            config_yml = yaml.safe_load(file)  # Read YAML file correctly
+            if config_yml and "chrome_path" in config_yml:
+                return config_yml["chrome_path"]
+            else:
+                print("Error: 'chrome_path' not found in config.yml")
+    except FileNotFoundError:
+        print("Error: config.yml not found in the current directory")
+    except yaml.YAMLError as e:
+        print(f"Error parsing config.yml: {e}")
 
-    # No environment variable set
-    print("Searching in system path")
+    # If neither method works, return None
+    print("Chromedriver path not found. Set CHROMEDRIVER_PATH or provide a valid config.yml.")
+    return None
 
 
 if __name__=='__main__':

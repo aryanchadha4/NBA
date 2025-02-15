@@ -2,173 +2,95 @@ import pandas as pd
 import numpy as np
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LinearRegression
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.ensemble import RandomForestRegressor
-from sklearn.metrics import mean_squared_error, r2_score
-from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Dense
-from tensorflow.keras.optimizers import Adam
+from sklearn.preprocessing import StandardScaler
 
-class PlayerPrediction:
-    def __init__(self, file_paths):
-        self.file_paths = file_paths
-        self.data = self.load_and_merge_data()
+# Load CSVs
+df_2021 = pd.read_csv("2023_nba.csv")
+df_2021["Year"] = 2023
 
-    def add_yoy_change(self):
-        excluded_columns = [
-            "PLAYER", "TEAM", "AGE", "GP", "W", "L", "FGM", "FGA", "3PM", "3PA", "FTM", "FTA", 
-            "PF", "FP", "DD2", "TD3"
-        ]
+df_2022 = pd.read_csv("2024_nba.csv")
+df_2022["Year"] = 2024
 
-        stat_columns = [col for col in predictor.data.columns if col not in excluded_columns]
-        yoy_changes = []
+df_2023 = pd.read_csv("2025_nba.csv")
+df_2023["Year"] = 2025
 
-        for stat in stat_columns:
-            stat_season_cols = [col for col in self.data.columns if col.startswith(stat)]
-            # Ensure columns are numeric before processing
-            numeric_cols = []
-            for col in stat_season_cols:
-                if pd.api.types.is_numeric_dtype(self.data[col]):
-                    numeric_cols.append(col)
-                else:
-                    # Attempt to convert to numeric, coerce invalid values to NaN
-                    self.data[col] = pd.to_numeric(self.data[col], errors="coerce")
-                    numeric_cols.append(col)
-        
-        for i in range(1, len(stat_season_cols)):
-            self.data[f"{stat}_YoY_Change_{i}"] = (
-                self.data[stat_season_cols[i]] - self.data[stat_season_cols[i - 1]]
-            )
-        
-        yoy_change_cols = [col for col in self.data.columns if col.startswith(f"{stat}_YoY_Change")]
-        
-        self.data[f"{stat}_Avg_YoY_Change"] = self.data[yoy_change_cols].mean(1, True)
+# Single DataFrame
+df = pd.concat([df_2021, df_2022, df_2023], ignore_index=True)
 
-    def load_and_merge_data(self):
-        df = []
-        for idx, file_path in enumerate(self.file_paths):
-            season_data = pd.read_csv(file_path)
-            season_data['Season'] = f"Year{idx + 1}"
-            df.append(season_data)
+# Sort by Player and Year for consistency
+df = df.sort_values(by=["Player", "Year"])
 
-        merged_data = df[0]
-        for idx, next_df in enumerate(df[1:], start=1):
-            merged_data = pd.merge(merged_data, next_df, on=["PLAYER", "TEAM"], suffixes=(f"_{idx-1}", f"_{idx}"), how="outer")
-        
-        return merged_data
+# Numerical columns
+numerical_features = ['Age', 'G', 'GS', 'MP', 'FG', 'FGA', 'FG%', '3P', '3PA', '3P%',
+                      '2P', '2PA', '2P%', 'eFG%', 'FT', 'FTA', 'FT%', 'ORB', 'DRB', 'TRB',
+                      'AST', 'STL', 'BLK', 'TOV', 'PF', 'PTS']
 
-    def preprocess_data(self, target_column, drop_columns=None):
-        self.add_yoy_change()
-        data = self.data.dropna()
+# Compute previous season’s stats for each feature
+for feature in numerical_features:
+    df[f'Prev_{feature}'] = df.groupby('Player')[feature].shift(1)
 
-        default_drop = ["PLAYER", "TEAM", "Season", target_column]
-        if drop_columns:
-            default_drop.extend(drop_columns)
+# Compute league-wide average change per year
+league_avg_changes = df.groupby("Year")[numerical_features].mean().pct_change()
+df = df.merge(league_avg_changes, on="Year", suffixes=("", "_League_Change"))
 
-        features = [col for col in data.columns if col not in default_drop]
+# Drop rows with NaNs
+df.dropna(inplace=True)
 
-        X = data[features]
-        y = data[target_column]
+# Define Features and Target Variables
+features = [f'Prev_{feat}' for feat in numerical_features] + [f"{feat}_League_Change" for feat in numerical_features]
+target = ['PTS', 'AST', 'TRB']
 
-        X_mean = X.mean()
-        X_std = X.std()
-        y_mean = y.mean()
-        y_std = y.std()
+# Split into training and testing sets
+X_train, X_test, y_train, y_test = train_test_split(df[features], df[target], test_size=0.2, random_state=42)
 
-        X_normalized = (X - X_mean) / X_std
-        y_normalized = (y - y_mean) / y_std
+# Scale the data for better model performance
+scaler = StandardScaler()
+X_train_scaled = scaler.fit_transform(X_train)
+X_test_scaled = scaler.transform(X_test)
 
-        self.feature_columns = features
+# Train a Linear Regression Model
+model = LinearRegression()
+model.fit(X_train_scaled, y_train)
 
-        return X_normalized, y_normalized, X_mean, X_std, y_mean, y_std
+# Evaluate the Model
+print(f"Model R² Score: {model.score(X_test_scaled, y_test):.3f}")
 
-    def linear_train_model(self, X, y):
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-        model = LinearRegression()
-        model.fit(X_train, y_train)
-
-        y_pred = model.predict(X_test)
-        mse = mean_squared_error(y_test, y_pred)
-        r2 = r2_score(y_test, y_pred)
-
-        print(f"MSE = {mse}, R2 = {r2}")
-
-        return model
+def predict_next_season(player_name, df, model, scaler):
+    # Normalize input player name
+    player_name = player_name.strip().lower()  # Ensure lowercase and no spaces
     
-    def random_forest_train_model(self, X, y):
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-        model = RandomForestRegressor(n_estimators=100, random_state=42)
-        model.fit(X_train, y_train)
+    # Make a copy to avoid modifying the original DataFrame
+    df_temp = df.copy()
+    df_temp['Player'] = df_temp['Player'].str.strip().str.lower()  # Normalize player names in the dataset
 
-        y_pred = model.predict(X_test)
-        mse = mean_squared_error(y_test, y_pred)
-        r2 = r2_score(y_test, y_pred)
+    # Filter dataset for the player
+    player_data = df_temp[df_temp['Player'] == player_name].sort_values(by='Year', ascending=False)
 
-        print(f"MSE = {mse}, R2 = {r2}")
+    # Check if player exists before accessing iloc[0]
+    if player_data.empty:
+        print(f"Player '{player_name.title()}' not found in dataset!")
+        return
 
-        return model
-    def neural_network_train_model(self, X, y):
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+    player_data = player_data.iloc[0]  # Get latest season stats
 
-        model = Sequential([
-            Dense(64, activation='relu', input_shape=(X_train.shape[1],)), 
-            Dense(64, activation='relu'),
-            Dense(1)
-        ])
+    # Prepare input features: Use ALL features that were used in training
+    input_features = np.array([
+        player_data[f'Prev_{feat}'] for feat in numerical_features  # Previous stats
+    ] + [
+        player_data[f"{feat}_League_Change"] for feat in numerical_features  # League-wide trends
+    ]).reshape(1, -1)
 
-        model.compile(optimizer=Adam(learning_rate=0.001), loss='mse', metrics=['mse'])
+    # Scale input
+    input_scaled = scaler.transform(input_features)
 
-        model.fit(X_train, y_train, epochs=50, batch_size=32, verbose=1, validation_split=0.2)
+    # Predict next season's stats
+    predicted_stats = model.predict(input_scaled)
+    predicted_values = dict(zip(["PTS", "AST", "TRB"], predicted_stats[0]))
 
-        y_pred = model.predict(X_test)
+    print(f"\nProjected Stats for {player_name.title()} (Next Season):")
+    for stat, value in predicted_values.items():
+        print(f"  - {stat}: {value:.1f}")
 
-        mse = mean_squared_error(y_test, y_pred)
-        r2 = r2_score(y_test, y_pred)
-
-        print(f"MSE = {mse}, R2 = {r2}")
-
-        return model
-    
-
-    def predict(self, model, input_data):
-        return model.predict(input_data)
-
-    def predict_for_player(self, model, player_name, x_mean, x_std, y_mean, y_std):
-        player_data = self.data[self.data["PLAYER"].str.lower() == player_name.lower()]
-
-        if not player_data.empty:
-            player_features = player_data[self.feature_columns]
-            player_features = (player_features - x_mean) / x_std
-
-            prediction_normalized = model.predict(player_features)
-            prediction_denormalized = prediction_normalized[0] * y_std + y_mean
-            print(f"Predicted stat for {player_name} in next season: {prediction_denormalized}")
-            return prediction_denormalized
-        else:
-            return None
-
-
-if __name__ == "__main__":
-    file_paths = [
-        "nba_all_player_stats_2025.csv",
-        "nba_all_player_stats_2024.csv",
-        "nba_all_player_stats_2023.csv"
-    ]
-
-    predictor = PlayerPrediction(file_paths)
-
-    player_name = "LeBron James"
-    category = "PTS_0"
-
-    X, y, X_mean, X_std, y_mean, y_std = predictor.preprocess_data(category)
-
-    model = predictor.linear_train_model(X, y)
-    model2 = predictor.random_forest_train_model(X, y)
-
-    prediction = predictor.predict_for_player(model, player_name, X_mean, X_std, y_mean, y_std)
-    prediction2 = predictor.predict_for_player(model2, player_name, X_mean, X_std, y_mean, y_std)
-
-    print(prediction)
-    print(prediction2)
-
+# Example usage
+predict_next_season("Trae Young", df, model, scaler)
 
