@@ -70,7 +70,7 @@ model.fit(X_train_scaled, y_train)
 
 print(f"Model R² Score: {model.score(X_test_scaled, y_test):.3f}")
 
-from thefuzz import process  # Use thefuzz instead of fuzzywuzzy for compatibility
+from thefuzz import process
 
 def predict_next_season(player_name, df, model, scaler):
     player_name = player_name.strip().lower()
@@ -78,17 +78,14 @@ def predict_next_season(player_name, df, model, scaler):
     df_temp = df.copy()
     df_temp['Player'] = df_temp['Player'].str.strip().str.lower()
 
-    # Get a list of unique player names
     unique_players = df_temp['Player'].unique()
 
-    # Use fuzzy matching to find the closest match
     best_match, score = process.extractOne(player_name, unique_players)
 
-    if score < 80:  # Confidence threshold for matching
+    if score < 80:
         print(f"Player '{player_name.title()}' not found with high confidence!")
         return
 
-    # Retrieve data for the best-matched player
     player_data = df_temp[df_temp['Player'] == best_match].sort_values(by='Year', ascending=False)
 
     if player_data.empty:
