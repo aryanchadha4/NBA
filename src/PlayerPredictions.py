@@ -32,19 +32,39 @@ df = pd.concat([df_2021, df_2022, df_2023], ignore_index=True)
 # Sort by Player and Year for consistency
 df = df.sort_values(by=["Player", "Year"])
 
+# Check if 'Awards' exists in the DataFrame before dropping
+print("Columns before dropping 'Awards':", df.columns)
+
+# Drop 'Awards' safely without error if it doesn’t exist
+df = df.drop(columns=["Awards_x"], errors="ignore")
+df = df.drop(columns=["Awards_y"], errors="ignore")
+
+print("Columns after dropping 'Awards':", df.columns)
+
+print("Number of unique players:", df["Player"].nunique())
+
 # Select Key Features
-key_features = ['PTS', 'AST', 'TRB', 'FG%', 'TS%▼', 'PER']
+key_features = ['PTS', 'AST', 'TRB', 'FG%', '3P%', 'TS%▼', 'PER']
 
 # Compute previous season’s stats for each feature
 for feature in key_features:
     df[f'Prev_{feature}'] = df.groupby('Player')[feature].shift(1)
 
+
+
 # Drop rows with NaNs (missing previous season data)
-df.dropna(inplace=True)
+print(df.isna().sum())  # Shows how many NaNs are in each column
+
+# Drop NaN values only in the necessary columns (features + targets)
+
 
 # Define Features and Target Variables
 features = [f'Prev_{feat}' for feat in key_features]
-target = ['PTS', 'AST', 'TRB', 'FG%']
+target = ['PTS', 'AST', 'TRB', 'FG%', '3P%']
+
+df.dropna(subset=[f'Prev_{feat}' for feat in key_features] + target, inplace=True)
+
+print("Number of unique players:", df["Player"].nunique())
 
 # Split into training and testing sets
 X_train, X_test, y_train, y_test = train_test_split(df[features], df[target], test_size=0.2, random_state=42)
@@ -90,12 +110,13 @@ def predict_next_season(player_name, df, model, scaler):
 
     # Predict next season's stats
     predicted_stats = model.predict(input_scaled)
-    predicted_values = dict(zip(["PTS", "AST", "TRB", "FG%"], predicted_stats[0]))
+    predicted_values = dict(zip(["PTS", "AST", "TRB", "FG%", "3P%"], predicted_stats[0]))
 
     print(f"\nProjected Stats for {player_name.title()} (Next Season):")
     for stat, value in predicted_values.items():
         print(f"  - {stat}: {value:.3f}")
 
-# Example usage
-predict_next_season("Trae Young", df, model, scaler)
+# Example usage with user input
+player_name = input("Enter the player's name: ")
+predict_next_season(player_name, df, model, scaler)
 
