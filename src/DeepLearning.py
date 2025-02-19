@@ -103,7 +103,7 @@ def build_model():
 for target in targets:
     print(f"\nTraining model for {target}...")
     model = build_model()
-    early_stop = keras.callbacks.EarlyStopping(monitor='val_loss', patience=20, restore_best_weights=True)
+    early_stop = keras.callbacks.EarlyStopping(monitor='val_loss', patience=50, restore_best_weights=True)
     model.fit(X_train, y_train_normalized[target], epochs=200, batch_size=8, validation_data=(X_test, y_test_normalized[target]), verbose=1, callbacks=[early_stop])
     models[target] = model
 
