@@ -4,16 +4,23 @@ from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LinearRegression
 from sklearn.preprocessing import StandardScaler
 from thefuzz import process
+import os
 
+data_folder = os.path.join(os.path.dirname(__file__), "data_files")
 def load_data(years, base_filename, adv_filename):
     """Loads and merges base and advanced stats for given years."""
     dataframes = []
     for year in years:
-        df_base = pd.read_csv(f"{year}_{base_filename}.csv")
-        df_adv = pd.read_csv(f"{year}_{adv_filename}.csv")
-        df_base["Year"] = year
+        df_basic_path = os.path.join(data_folder, f"{year}_nba.csv")
+        df_adv_path = os.path.join(data_folder, f"{year}_advanced.csv")
+    
+        df_basic = pd.read_csv(df_basic_path)
+        df_basic["Year"] = year
+    
+        df_adv = pd.read_csv(df_adv_path)
         df_adv["Year"] = year
-        df_merged = df_base.merge(df_adv, on=["Player", "Year"], how="left")
+
+        df_merged = df_basic.merge(df_adv, on=["Player", "Year"], how="left")
         dataframes.append(df_merged)
     return pd.concat(dataframes, ignore_index=True)
 

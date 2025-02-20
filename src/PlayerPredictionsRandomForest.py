@@ -7,18 +7,22 @@ from sklearn.compose import ColumnTransformer
 from sklearn.pipeline import Pipeline
 from thefuzz import process
 import matplotlib.pyplot as plt
+import os
 
+data_folder = os.path.join(os.path.dirname(__file__), "data_files")
 # Define the years of data and load them
 years = list(range(2021, 2025))
 df_list = []
 
 for year in years:
-    df_basic = pd.read_csv(f"{year}_nba.csv")
+    df_basic_path = os.path.join(data_folder, f"{year}_nba.csv")
+    df_adv_path = os.path.join(data_folder, f"{year}_advanced.csv")
+    
+    df_basic = pd.read_csv(df_basic_path)
     df_basic["Year"] = year
     
-    df_adv = pd.read_csv(f"{year}_advanced.csv")
+    df_adv = pd.read_csv(df_adv_path)
     df_adv["Year"] = year
-    
     df_merged = df_basic.merge(df_adv, on=["Player", "Year"], how="left")
     df_list.append(df_merged)
 

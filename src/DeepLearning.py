@@ -9,16 +9,23 @@ from sklearn.pipeline import Pipeline
 from thefuzz import process
 import matplotlib.pyplot as plt
 from sklearn.metrics import r2_score, mean_absolute_error, mean_squared_error
+import os
+
+# Define the path to the data_files folder
+data_folder = os.path.join(os.path.dirname(__file__), "data_files")
 
 # Define the years of data and load them
 years = list(range(2021, 2025))
 df_list = []
 
 for year in years:
-    df_basic = pd.read_csv(f"{year}_nba.csv")
+    df_basic_path = os.path.join(data_folder, f"{year}_nba.csv")
+    df_adv_path = os.path.join(data_folder, f"{year}_advanced.csv")
+    
+    df_basic = pd.read_csv(df_basic_path)
     df_basic["Year"] = year
     
-    df_adv = pd.read_csv(f"{year}_advanced.csv")
+    df_adv = pd.read_csv(df_adv_path)
     df_adv["Year"] = year
     
     df_merged = df_basic.merge(df_adv, on=["Player", "Year"], how="left")
@@ -27,18 +34,16 @@ for year in years:
 df = pd.concat(df_list, ignore_index=True)
 df = df.sort_values(by=["Player", "Year"])
 
-# Define features and target variables
 features = [
     "Age_x", "G_x", "GS_x", "MP_x", "FG", "FGA", "FG%", "3P", "3PA", "3P%",
     "2P", "2PA", "2P%", "eFG%", "FT", "FTA", "FT%", "ORB", "DRB", "TRB", "AST",
     "STL", "BLK", "TOV", "PF", "PTS", "PER", "TS%", "3PAr", "FTr", "ORB%", "DRB%",
     "TRB%", "AST%", "STL%", "BLK%", "TOV%", "USG%", "OWS", "DWS", "WS", "WS/48",
-    "BPM", "VORP"
+    "BPM", "VORP", 'MP_x'
 ]
 
 targets = ["PTS", "AST", "TRB", "FG%", "3P%", "TS%"]
 
-# Create previous season features
 for feature in features:
     df[f'Prev_{feature}'] = df.groupby('Player')[feature].shift(1)
 
@@ -54,7 +59,6 @@ y = df[targets]
 
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
-# Normalize targets
 y_train_normalized = {}
 y_test_normalized = {}
 y_mean = {}
@@ -71,14 +75,12 @@ scaler = StandardScaler()
 X_train = scaler.fit_transform(X_train)
 X_test = scaler.transform(X_test)
 
-# Define learning rate schedule
 lr_schedule = keras.optimizers.schedules.ExponentialDecay(
     initial_learning_rate=0.0001,
     decay_steps=1000,
     decay_rate=0.85
 )
 
-# Train separate models for each statistic
 models = {}
 
 def build_model():
@@ -103,8 +105,8 @@ def build_model():
 for target in targets:
     print(f"\nTraining model for {target}...")
     model = build_model()
-    early_stop = keras.callbacks.EarlyStopping(monitor='val_loss', patience=50, restore_best_weights=True)
-    model.fit(X_train, y_train_normalized[target], epochs=200, batch_size=8, validation_data=(X_test, y_test_normalized[target]), verbose=1, callbacks=[early_stop])
+    early_stop = keras.callbacks.EarlyStopping(monitor='val_loss', patience=20, restore_best_weights=True)
+    model.fit(X_train, y_train_normalized[target], epochs=50, batch_size=8, validation_data=(X_test, y_test_normalized[target]), verbose=1, callbacks=[early_stop])
     models[target] = model
 
 # Evaluate models
