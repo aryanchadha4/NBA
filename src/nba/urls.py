@@ -1,8 +1,7 @@
 from django.urls import path
-from .views import player_stats, home
-
+from .views import predict_game, home
 
 urlpatterns = [
-    path("api/player-stats/", player_stats),
-    path('', home),  # Homepage at `/`
+    path("api/game-prediction/", predict_game),
+    path('', home),
 ]

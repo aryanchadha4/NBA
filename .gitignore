@@ -1,0 +1,30 @@
+# Ignore Python cache and virtual environments
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+env/
+venv/
+
+# Ignore Django migrations
+migrations/*
+
+# Ignore SQLite database (optional, unless you want to share it)
+db.sqlite3
+
+# Ignore compiled code
+*.so
+
+# Ignore logs and system files
+*.log
+.DS_Store
+
+# Ignore React-related files
+frontend/node_modules/
+frontend/build/
+
+# Ignore VSCode settings (if using VSCode)
+.vscode/
+
+# Ignore Jupyter Notebook checkpoints (if applicable)
+.ipynb_checkpoints/
