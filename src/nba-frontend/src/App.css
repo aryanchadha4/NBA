@@ -1,7 +1,15 @@
-body {
-  font-family: Arial, sans-serif;
-  background-color: #f4f4f4;
-  text-align: center;
+/* index.css or App.css */
+body, html {
+  margin: 0;
+  padding: 0;
+  background-color: #FAE3D9; /* Match the pastel background */
+}
+
+#root {
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
 .container {
