@@ -2,6 +2,7 @@ import pandas as pd
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import RandomForestClassifier
+from sklearn.neural_network import MLPClassifier
 from sklearn.metrics import accuracy_score
 
 file_paths = [
@@ -76,14 +77,19 @@ logistic_model.fit(X_train, y_train)
 random_forest_model = RandomForestClassifier(n_estimators=100, random_state=42)
 random_forest_model.fit(X_train, y_train)
 
+neural_network = MLPClassifier(hidden_layer_sizes=(64, 32), max_iter=500, solver='lbfgs', random_state=42)
+neural_network.fit(X_train, y_train)
+
 y_pred_logistic = logistic_model.predict(X_test)
 y_pred_rf = random_forest_model.predict(X_test)
+y_pred_nn = neural_network.predict(X_test)
 
 print("Logistic Regression Accuracy:", accuracy_score(y_test, y_pred_logistic))
 print("Random Forest Accuracy:", accuracy_score(y_test, y_pred_rf))
+print("Neural Network Accuracy:", accuracy_score(y_test, y_pred_nn))
 
 
-def predict_game(team1, team2, logistic_model, rf_model, team_stats):
+def predict_game(team1, team2, logistic_model, rf_model, nn_model, team_stats):
     team1 = team1.strip()
     team2 = team2.strip()
 
@@ -109,20 +115,23 @@ def predict_game(team1, team2, logistic_model, rf_model, team_stats):
 
     prediction_logistic = logistic_model.predict(match_df)[0]
     prediction_rf = rf_model.predict(match_df)[0]
+    prediction_nn = nn_model.predict(match_df)[0]
 
     winner_logistic = team1 if prediction_logistic == 1 else team2
     winner_rf = team1 if prediction_rf == 1 else team2
+    winner_nn = team1 if prediction_nn == 1 else team2
 
-    print(f"\n**Prediction Results:**")
+    print(f"\nPrediction Results:")
     print(f"Logistic Regression Winner: {winner_logistic}")
-    print(f"*Random Forest Winner: {winner_rf}\n")
+    print(f"Random Forest Winner: {winner_rf}")
+    print(f"Neural Network Winner: {winner_nn}\n")
 
-    return winner_logistic, winner_rf
+    return winner_logistic, winner_rf, winner_nn
 
 
 team1 = input("Enter the home team: ")
 team2 = input("Enter the away team: ")
 
-predict_game(team1, team2, logistic_model, random_forest_model, team_stats)
+predict_game(team1, team2, logistic_model, random_forest_model, neural_network, team_stats)
 
 
