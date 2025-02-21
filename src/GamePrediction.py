@@ -4,6 +4,7 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.neural_network import MLPClassifier
 from sklearn.metrics import accuracy_score
+from thefuzz import process
 
 file_paths = [
     "NBA_Game_Outcomes_October.csv",
@@ -77,7 +78,7 @@ logistic_model.fit(X_train, y_train)
 random_forest_model = RandomForestClassifier(n_estimators=100, random_state=42)
 random_forest_model.fit(X_train, y_train)
 
-neural_network = MLPClassifier(hidden_layer_sizes=(64, 32), max_iter=500, solver='lbfgs', random_state=42)
+neural_network = MLPClassifier(hidden_layer_sizes=(64, 32), max_iter=35, random_state=42)
 neural_network.fit(X_train, y_train)
 
 y_pred_logistic = logistic_model.predict(X_test)
@@ -89,16 +90,30 @@ print("Random Forest Accuracy:", accuracy_score(y_test, y_pred_rf))
 print("Neural Network Accuracy:", accuracy_score(y_test, y_pred_nn))
 
 
+def fuzzy_match_team(team_name, team_list):
+    match, score = process.extractOne(team_name, team_list)
+    if score > 80:
+        return match
+    else:
+        print(f"Error: No close match found for '{team_name}'")
+        return None
+
+
 def predict_game(team1, team2, logistic_model, rf_model, nn_model, team_stats):
-    team1 = team1.strip()
-    team2 = team2.strip()
+    team_list = team_stats["Team"].tolist()
+
+    team1 = fuzzy_match_team(team1, team_list)
+    team2 = fuzzy_match_team(team2, team_list)
+
+    if not team1 or not team2:
+        return None
+
+    if team1 == team2:
+    print(f"Error: You entered the same team twice ({team1})! Please enter two different teams")
+        return None
 
     team1_stats = team_stats[team_stats["Team"] == team1]
     team2_stats = team_stats[team_stats["Team"] == team2]
-
-    if team1_stats.empty or team2_stats.empty:
-        print("Error: One or both teams not found in the dataset.")
-        return None
 
     match_features = {}
     for stat in ["ORtg", "DRtg", "NRtg", "Pace", "FTr", "3PAr", "TS%", "eFG%", "TOV%", "ORB%", 
@@ -129,9 +144,17 @@ def predict_game(team1, team2, logistic_model, rf_model, nn_model, team_stats):
     return winner_logistic, winner_rf, winner_nn
 
 
-team1 = input("Enter the home team: ")
-team2 = input("Enter the away team: ")
+while True:
+    team1 = input("Enter the home team: ")
+    team2 = input("Enter the away team: ")
 
-predict_game(team1, team2, logistic_model, random_forest_model, neural_network, team_stats)
+    if team1.lower() == team2.lower():
+        print(f"Error: You entered the same team twice ({team1}). Please enter two different teams.\n")
+        continue
+    
+    predict_game(team1, team2, logistic_model, random_forest_model, neural_network, team_stats)
+    break
+
+
 
 
