@@ -1,44 +1,29 @@
 import React, { useState } from "react";
-import { getPrediction } from "../api";
+import { getGamePrediction } from "../api";
+import { useNavigate } from "react-router-dom";
 
 const PredictionForm = () => {
     const [homeTeam, setHomeTeam] = useState("");
     const [awayTeam, setAwayTeam] = useState("");
     const [prediction, setPrediction] = useState(null);
-    const [error, setError] = useState("");
+    const navigate = useNavigate();
 
     const handlePredict = async () => {
-        setError("");
-        setPrediction(null);
-
         if (!homeTeam || !awayTeam) {
-            setError("Please enter both teams!");
+            alert("Please enter both teams!");
             return;
         }
-
         if (homeTeam.toLowerCase() === awayTeam.toLowerCase()) {
-            setError("Teams must be different!");
+            alert("Teams must be different!");
             return;
         }
-
-        const result = await getPrediction(homeTeam, awayTeam);
-
-        if (!result) {
-            setError("Failed to fetch predictions. Please try again.");
-            return;
-        }
-
-        if (result.error) {
-            setError(result.error);
-            return;
-        }
-
+        const result = await getGamePrediction(homeTeam, awayTeam);
         setPrediction(result);
     };
 
     return (
         <div style={styles.container}>
-            <h1 style={styles.title}>🏀 NBA Game Predictor 🏀</h1>
+            <h2>🏀 <span style={styles.heading}>NBA Game Predictor</span> 🏀</h2>
             <div style={styles.inputContainer}>
                 <input
                     type="text"
@@ -54,92 +39,60 @@ const PredictionForm = () => {
                     onChange={(e) => setAwayTeam(e.target.value)}
                     style={styles.input}
                 />
-                <button onClick={handlePredict} style={styles.button}>
-                    Predict Game
-                </button>
+                <button onClick={handlePredict} style={styles.button}>Predict Game</button>
             </div>
 
-            {error && <p style={styles.error}>{error}</p>}
-
             {prediction && (
-                <div style={styles.resultContainer}>
-                    <h2>🏆 Prediction Results 🏆</h2>
-                    <p><strong>📊 Logistic Regression Winner:</strong> {prediction.logistic_winner}</p>
-                    <p><strong>🌲 Random Forest Winner:</strong> {prediction.random_forest_winner}</p>
-                    <p><strong>🧠 Neural Network Winner:</strong> {prediction.neural_network_winner}</p>
+                <div style={styles.resultsBox}>
+                    <h3>🏆 Prediction Results 🏆</h3>
+                    <p>📊 <strong>Logistic Regression Winner:</strong> {prediction.logistic_winner}</p>
+                    <p>🌲 <strong>Random Forest Winner:</strong> {prediction.random_forest_winner}</p>
+                    <p>🧠 <strong>Neural Network Winner:</strong> {prediction.neural_network_winner}</p>
                 </div>
             )}
+
+            {/* Back to Home Button */}
+            <button onClick={() => navigate("/")} style={styles.backButton}>⬅ Back to Home</button>
         </div>
     );
 };
 
-// 🎨 Styling Object with a Pastel Theme
+// Styling
 const styles = {
     container: {
         textAlign: "center",
         marginTop: "50px",
-        fontFamily: "Arial, sans-serif",
-        backgroundColor: "#FAE3D9", // Light pastel peach background
-        minHeight: "100vh",
-        padding: "30px",
+        backgroundColor: "#F7E7E6",
+        padding: "20px",
+        borderRadius: "15px",
     },
-    title: {
-        fontSize: "30px",
-        fontWeight: "bold",
-        marginBottom: "20px",
-        color: "#6A0572", // Deep pastel purple
-        textShadow: "2px 2px 4px rgba(0, 0, 0, 0.1)",
-    },
-    inputContainer: {
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
-        gap: "10px",
-        marginBottom: "20px",
-    },
-    input: {
-        padding: "12px",
-        fontSize: "16px",
-        width: "220px",
-        borderRadius: "10px",
-        border: "1px solid #C2B8A3", // Soft pastel beige border
-        backgroundColor: "#FFF5E4", // Light cream input background
-        color: "#5E548E", // Soft purple text
-        textAlign: "center",
-        boxShadow: "2px 2px 5px rgba(0, 0, 0, 0.1)",
-    },
+    heading: { color: "#822659", fontSize: "2rem" },
+    inputContainer: { display: "flex", gap: "10px", justifyContent: "center", marginBottom: "20px" },
+    input: { padding: "10px", borderRadius: "8px", border: "1px solid #ccc" },
     button: {
-        padding: "12px 20px",
-        fontSize: "16px",
-        backgroundColor: "#A28089", // Pastel pinkish-purple
-        color: "#FFF",
+        backgroundColor: "#C06C84",
+        color: "white",
+        padding: "10px 20px",
+        borderRadius: "10px",
         border: "none",
-        borderRadius: "10px",
         cursor: "pointer",
-        transition: "background 0.3s ease",
-        boxShadow: "2px 2px 5px rgba(0, 0, 0, 0.2)",
+        transition: "0.3s",
     },
-    buttonHover: {
-        backgroundColor: "#6A0572", // Darker pastel purple on hover
-    },
-    error: {
-        color: "#D7263D", // Soft pastel red
-        fontWeight: "bold",
-        marginTop: "10px",
-    },
-    resultContainer: {
+    buttonHover: { backgroundColor: "#822659" },
+    resultsBox: { backgroundColor: "#FAF3E0", padding: "15px", borderRadius: "10px", marginTop: "20px" },
+    backButton: {
         marginTop: "20px",
-        padding: "15px",
+        padding: "10px 20px",
+        backgroundColor: "#8884FF",
+        color: "white",
         borderRadius: "10px",
-        backgroundColor: "#FFF5E4", // Light pastel cream
-        width: "50%",
-        margin: "0 auto",
-        boxShadow: "0px 4px 8px rgba(0, 0, 0, 0.15)",
-        color: "#5E548E", // Soft purple text
+        border: "none",
+        cursor: "pointer",
     },
 };
 
 export default PredictionForm;
+
 
 
 
