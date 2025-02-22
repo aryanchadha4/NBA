@@ -6,7 +6,7 @@ import PlayerPrediction from "./components/PlayerPrediction";
 const Home = () => {
   return (
       <div style={styles.container}>  {/* Apply styles.container */}
-          <h1 style={styles.heading}>🏀 Welcome to NBA Predictions 🏀</h1>
+          <h1 style={styles.heading}>Welcome to NBA Predictions</h1>
           <p style={styles.description}>Select a feature:</p>
           <Link to="/predict">
               <button style={styles.button}>Game Predictor</button>

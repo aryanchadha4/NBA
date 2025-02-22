@@ -1,8 +1,7 @@
 import axios from 'axios';
 
-const API_BASE_URL = "http://127.0.0.1:8000/api";  // Base URL for Django API
+const API_BASE_URL = "http://127.0.0.1:8000/api";
 
-// Game Prediction API
 export const getGamePrediction = async (home_team, away_team) => {
     try {
         const response = await axios.get(`${API_BASE_URL}/game-prediction/`, {
@@ -15,7 +14,6 @@ export const getGamePrediction = async (home_team, away_team) => {
     }
 };
 
-// Player Prediction API
 export const getPlayerPrediction = async (player) => {
     try {
         const response = await axios.get(`${API_BASE_URL}/player-prediction/`, {

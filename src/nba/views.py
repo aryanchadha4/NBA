@@ -6,10 +6,10 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.neural_network import MLPClassifier
 from sklearn.metrics import accuracy_score
+from sklearn.metrics import r2_score
 from thefuzz import process
 import os
 
-# Load Data
 DATA_FOLDER = os.path.join(os.path.dirname(__file__), "data_files")
 
 file_paths = [
@@ -29,7 +29,7 @@ game_logs = game_logs.rename(columns={
 })
 
 game_logs["winner"] = (game_logs["home_pts"] > game_logs["visitor_pts"]).astype(int)
-game_logs["Home_Indicator"] = 1  # Home team is always 1
+game_logs["Home_Indicator"] = 1
 
 team_stats = pd.read_csv(os.path.join(DATA_FOLDER, "NBA_Teams_Stats.csv"))
 team_stats = team_stats.rename(columns={
@@ -39,18 +39,15 @@ team_stats = team_stats.rename(columns={
     "DRB%": "Def_DRB%"
 })
 
-# Ensure no extra spaces in team names
 team_stats["Team"] = team_stats["Team"].str.strip()
 game_logs["home_team"] = game_logs["home_team"].str.strip()
 game_logs["visitor_team"] = game_logs["visitor_team"].str.strip()
 
-# Selected Features for ML
 FEATURES = ["ORtg", "DRtg", "NRtg", "Pace", "FTr", "3PAr", "TS%", "eFG%", "TOV%", "ORB%", 
             "FT/FGA", "Def_eFG%", "Def_TOV%", "Def_DRB%", "Def_FT/FGA"]
 
 team_stats = team_stats[["Team"] + FEATURES]
 
-# Merge team stats with game logs
 game_logs = game_logs.merge(team_stats, left_on="home_team", right_on="Team", how="left")
 game_logs = game_logs.rename(columns={col: col + "_home" for col in FEATURES})
 
@@ -59,15 +56,12 @@ game_logs = game_logs.rename(columns={col: col + "_away" for col in FEATURES})
 
 game_logs = game_logs.drop(columns=["Team_home", "Team_away"], errors="ignore")
 
-# Compute stat differentials (home - away)
 for stat in FEATURES:
     game_logs[f"{stat}_diff"] = game_logs[f"{stat}_home"] - game_logs[f"{stat}_away"]
 
-# Define training data
 FEATURE_COLS = [col for col in game_logs.columns if "_diff" in col] + ["Home_Indicator"]
 X_train, X_test, y_train, y_test = train_test_split(game_logs[FEATURE_COLS], game_logs["winner"], test_size=0.2, random_state=42)
 
-# Train Models
 logistic_model = LogisticRegression()
 logistic_model.fit(X_train, y_train)
 
@@ -77,12 +71,9 @@ random_forest_model.fit(X_train, y_train)
 neural_network = MLPClassifier(hidden_layer_sizes=(64, 32), max_iter=35, random_state=42)
 neural_network.fit(X_train, y_train)
 
-# Model Accuracy
 print("Logistic Regression Accuracy:", accuracy_score(y_test, logistic_model.predict(X_test)))
 print("Random Forest Accuracy:", accuracy_score(y_test, random_forest_model.predict(X_test)))
 print("Neural Network Accuracy:", accuracy_score(y_test, neural_network.predict(X_test)))
-
-# ---------------- API Functions ---------------- #
 
 def fuzzy_match_team(team_name):
     """ Find closest matching team name """
@@ -112,12 +103,10 @@ def predict_game(request):
 
     match_df = pd.DataFrame([match_features])
 
-    # Ensure all required columns exist
     missing_cols = set(FEATURE_COLS) - set(match_df.columns)
     for col in missing_cols:
         match_df[col] = 0
 
-    # Predictions from each model
     pred_logistic = logistic_model.predict(match_df)[0]
     pred_rf = random_forest_model.predict(match_df)[0]
     pred_nn = neural_network.predict(match_df)[0]
@@ -136,7 +125,6 @@ def home(request):
     return JsonResponse({"message": "Welcome to NBA Predictions API!"})
 
 
-from django.http import JsonResponse
 import pandas as pd
 import numpy as np
 import os
@@ -147,7 +135,6 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.neural_network import MLPRegressor
 from thefuzz import process
 
-# Load Data
 DATA_FOLDER = os.path.join(os.path.dirname(__file__), "data_files")
 YEARS = list(range(2021, 2025))
 
@@ -170,7 +157,6 @@ def load_data():
 
 df = load_data()
 
-# Define features and targets
 LIMITED_FEATURES = ["PTS", "AST", "TRB", "FG%", "3P%", "TS%", "BPM", "Age_x", "FGA", "3PA", "USG%"]
 FULL_FEATURES = [
     "PTS", "AST", "TRB", "FG%", "3P%", "TS%", "BPM", "Age_x", "FGA", "3PA", "USG%", "STL", "BLK", 
@@ -180,13 +166,11 @@ FULL_FEATURES = [
 
 TARGETS = ["PTS", "AST", "TRB", "FG%", "3P%"]
 
-# Create previous season features
 for feature in FULL_FEATURES:
     df[f'Prev_{feature}'] = df.groupby('Player')[feature].shift(1)
 
 df.dropna(subset=[f'Prev_{feat}' for feat in FULL_FEATURES] + TARGETS, inplace=True)
 
-# Train models
 models = {}
 scalers = {}
 
@@ -196,11 +180,9 @@ X_full = df[[f'Prev_{feat}' for feat in FULL_FEATURES]]
 for target in TARGETS:
     y = df[target]
 
-    # Train-test split for each feature set
     X_train_limited, X_test_limited, y_train, y_test = train_test_split(X_limited, y, test_size=0.2, random_state=42)
     X_train_full, X_test_full, _, _ = train_test_split(X_full, y, test_size=0.2, random_state=42)
 
-    # Scale features for linear and deep learning models
     scaler_limited = StandardScaler()
     X_train_limited_scaled = scaler_limited.fit_transform(X_train_limited)
     X_test_limited_scaled = scaler_limited.transform(X_test_limited)
@@ -209,20 +191,23 @@ for target in TARGETS:
     X_train_full_scaled = scaler_full.fit_transform(X_train_full)
     X_test_full_scaled = scaler_full.transform(X_test_full)
 
-    # Train models
+    r2_scores = {}
+
     models[target] = {
         "linear": LinearRegression().fit(X_train_limited_scaled, y_train),
         "random_forest": RandomForestRegressor(n_estimators=100, random_state=42).fit(X_train_full, y_train),
-        "neural_network": MLPRegressor(hidden_layer_sizes=(64, 32), max_iter=50, random_state=42).fit(X_train_full_scaled, y_train)
+        "neural_network": MLPRegressor(hidden_layer_sizes=(64, 32), max_iter=150, random_state=42).fit(X_train_full_scaled, y_train)
     }
 
-    # Store scalers
+    r2_scores["linear"] = models[target]["linear"].score(X_test_limited_scaled, y_test)
+    r2_scores["random_forest"] = models[target]["random_forest"].score(X_test_full, y_test)
+    r2_scores["neural_network"] = models[target]["neural_network"].score(X_test_full_scaled, y_test)
+
     scalers[target] = {
         "limited": scaler_limited,
         "full": scaler_full
     }
 
-# Prediction function
 def predict_player_stats(request):
     """API endpoint to predict a player's next season stats."""
     player_name = request.GET.get("player", "").strip().lower()
@@ -243,7 +228,6 @@ def predict_player_stats(request):
         scalers_dict = scalers[target]
         models_dict = models[target]
 
-        # Scale inputs
         input_limited_scaled = scalers_dict["limited"].transform(input_limited)
         input_full_scaled = scalers_dict["full"].transform(input_full)
 

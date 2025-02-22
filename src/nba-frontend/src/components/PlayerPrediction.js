@@ -30,7 +30,7 @@ const PlayerPrediction = () => {
 
     return (
         <div style={styles.container}>
-            <h2 style={styles.heading}>🏀 Player Stats Predictor</h2>
+            <h2 style={styles.heading}> Player Stats Predictor</h2>
             <div style={styles.inputContainer}>
                 <input 
                     type="text" 
@@ -110,7 +110,7 @@ const styles = {
         padding: "20px",
         borderRadius: "10px",
         boxShadow: "0px 4px 10px rgba(0, 0, 0, 0.1)",
-        width: "70%", // Wider result box
+        width: "70%", 
         marginTop: "20px",
         textAlign: "center",
     },
@@ -121,7 +121,7 @@ const styles = {
     },
     statsGrid: {
         display: "grid",
-        gridTemplateColumns: "repeat(3, 1fr)", // 3 columns for a more horizontal look
+        gridTemplateColumns: "repeat(3, 1fr)",
         gap: "15px",
         marginTop: "15px",
     },
