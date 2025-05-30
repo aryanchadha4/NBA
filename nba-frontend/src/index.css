@@ -1,0 +1,19 @@
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
+    monospace;
+}
+
+/* index.css or App.css */
+body, html {
+  margin: 0;
+  padding: 0;
+  background-color: #FAE3D9; /* Match the pastel background */
+}
+
+#root {
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
