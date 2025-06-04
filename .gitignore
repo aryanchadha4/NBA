@@ -7,6 +7,9 @@ env/
 venv/
 myenv/
 
+# Ignore Datafiles
+datafiles/
+
 # Ignore Django migrations
 migrations/*
 
