@@ -7,8 +7,8 @@ env/
 venv/
 myenv/
 
-# Ignore Datafiles
-datafiles/
+# Ignore Datafiles csv's
+src/nba/data_files/
 
 # Ignore Django migrations
 migrations/*

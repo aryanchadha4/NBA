@@ -20,10 +20,18 @@ const PredictionForm = () => {
             alert("Teams must be different!");
             return;
         }
+
         const result = await getGamePrediction(homeTeam, awayTeam);
+
+        if (result.error) {
+            alert("Prediction failed: " + result.error);
+            return;
+        }
+
         setPrediction(result);
         setModelIndex(0); // Reset model index on new prediction
     };
+
 
     const handleNextModel = () => {
         setModelIndex((prevIndex) => (prevIndex + 1) % modelNames.length);
@@ -32,6 +40,7 @@ const PredictionForm = () => {
     const handlePrevModel = () => {
         setModelIndex((prevIndex) => (prevIndex - 1 + modelNames.length) % modelNames.length);
     };
+    console.log("Full prediction object:", prediction);
 
     // Create an array of predictions corresponding to our model names
     const predictionData = prediction ? [
@@ -39,6 +48,8 @@ const PredictionForm = () => {
         prediction.random_forest_winner,
         prediction.neural_network_winner
     ] : [];
+
+    console.log("Prediction data:", predictionData);
 
     return (
         <div style={styles.container}>
@@ -65,11 +76,12 @@ const PredictionForm = () => {
 
             {prediction && (
                 <div style={styles.resultContainer}>
-                    <h3>Prediction Results</h3>
+                    <h3>📊 Prediction Results</h3>
                     <h4 style={styles.modelHeading}>{modelNames[modelIndex]} Model</h4>
-                    <p style={styles.predictionText}>
-                        Predicted Winner: <strong>{predictionData[modelIndex]}</strong>
-                    </p>
+                    <div style={styles.winnerCard}>
+                        <div style={styles.winnerTitle}>Predicted Winner</div>
+                        <div style={styles.winnerName}>{predictionData[modelIndex]}</div>
+                    </div> 
                     <div style={styles.navButtons}>
                         <button onClick={handlePrevModel} style={styles.navButton}>
                             ⬅ Previous
@@ -171,7 +183,48 @@ const styles = {
         cursor: "pointer",
         transition: "background 0.3s",
     },
+    statsGrid: {
+    display: "grid",
+    gridTemplateColumns: "repeat(3, 1fr)",
+    gap: "15px",
+    marginTop: "15px",
+    },
+    statBox: {
+        padding: "10px",
+        borderRadius: "8px",
+        backgroundColor: "#FFE5EC",
+        boxShadow: "0px 2px 5px rgba(0, 0, 0, 0.1)",
+        fontSize: "1.1rem",
+        textAlign: "center",
+    },
+
+    winnerCard: {
+    marginTop: "20px",
+    padding: "20px",
+    borderRadius: "10px",
+    backgroundColor: "#FFE5EC",
+    boxShadow: "0px 2px 5px rgba(0, 0, 0, 0.1)",
+    textAlign: "center",
+    display: "inline-block",
+    minWidth: "250px",
+    },
+
+    winnerTitle: {
+        fontSize: "1.2rem",
+        fontWeight: "bold",
+        color: "#6A0572",
+        marginBottom: "8px",
+    },
+
+    winnerName: {
+        fontSize: "1.6rem",
+        fontWeight: "bold",
+        color: "#000",
+    },
+
 };
+
+
 
 export default PredictionForm;
 

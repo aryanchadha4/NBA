@@ -15,10 +15,19 @@ const PlayerPrediction = () => {
             alert("Please enter a player name!");
             return;
         }
+
         const result = await getPlayerPrediction(player);
-        setPrediction(result);
-        setModelIndex(0); // Reset to first model on new prediction
+        console.log("API response:", result);
+
+        if (result?.predictions) {
+            setPrediction(result); // now predictions is not null
+            setModelIndex(0);
+        } else {
+            alert(result?.error || "An unexpected error occurred.");
+            setPrediction(null);
+        }
     };
+
 
     const handleNextModel = () => {
         setModelIndex((prevIndex) => (prevIndex + 1) % modelNames.length);
@@ -48,12 +57,17 @@ const PlayerPrediction = () => {
                     <h4 style={styles.modelHeading}>{modelNames[modelIndex]} Model</h4>
 
                     <div style={styles.statsGrid}>
-                        {Object.entries(prediction.predictions).map(([stat, models]) => (
+                        {Object.entries(prediction.predictions).map(([stat, models]) => {
+                        const modelKey = modelNames[modelIndex].toLowerCase().replace(" ", "_");
+                        const value = models[modelKey];
+                        return (
                             <div key={stat} style={styles.statBox}>
-                                <strong>{stat}:</strong> {Object.values(models)[modelIndex].toFixed(2)}
+                            <strong>{stat}:</strong> {typeof value === "number" ? value.toFixed(2) : "N/A"}
                             </div>
-                        ))}
+                        );
+                        })}
                     </div>
+
 
                     <div style={styles.navButtons}>
                         <button onClick={handlePrevModel} style={styles.navButton}>⬅ Previous</button>
